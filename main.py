@@ -64,3 +64,4 @@ if __name__ == "__main__":
             print(f"Title: {title}")
     except Exception as e:
         print(f"A critical error occurred: {e}")
+    input("End of program. Press enter to exit...")
