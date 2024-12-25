@@ -29,12 +29,12 @@ def get_free_games():
             driver.get("https://store.epicgames.com/en-US/")
 
             try:  # Use a shorter timeout if possible
-                title_element = WebDriverWait(driver, 10).until( # Reduced timeout
+                title_element = WebDriverWait(driver, 2).until( # Reduced timeout
                     EC.presence_of_element_located((By.CSS_SELECTOR, "h6.eds_1ypbntd0.eds_1ypbntd7.eds_1ypbntdq"))
                 )
                 title = title_element.text
 
-                date_elements = WebDriverWait(driver, 10).until(
+                date_elements = WebDriverWait(driver, 2).until(
                     EC.presence_of_all_elements_located((By.TAG_NAME, "time"))
                 )
 
