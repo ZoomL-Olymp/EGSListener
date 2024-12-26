@@ -19,7 +19,13 @@ from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQue
 # --- Logging ---
 logging.basicConfig(filename='epic_games_scraper.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
+
 logger = logging.getLogger(__name__)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+logger.addHandler(stream_handler)
 
 # --- Configuration ---
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
