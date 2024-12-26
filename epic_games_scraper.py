@@ -8,8 +8,6 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service as ChromeService
-from webdriver_manager.chrome import ChromeDriverManager
 from fake_useragent import UserAgent
 
 import sqlite3
@@ -98,8 +96,11 @@ def scrape_epic_games():
         user_agent = ua.random
         options.add_argument(f'user-agent={user_agent}')
         logger.info(f"Using User-Agent: {user_agent}")
+        options.add_argument('--no-sandbox') # Recommended for headless chrome inside docker
+        options.add_argument('--disable-dev-shm-usage')
 
-        with webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options) as driver:
+        # Указываем путь к ChromeDriver
+        with webdriver.Chrome(executable_path='/usr/bin/chromedriver', options=options) as driver:
             logger.info("Navigating to Epic Games Store...")
             driver.get("https://store.epicgames.com/en-US/")
 
