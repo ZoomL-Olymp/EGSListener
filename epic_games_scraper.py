@@ -99,8 +99,7 @@ def scrape_epic_games():
         options.add_argument('--no-sandbox') # Recommended for headless chrome inside docker
         options.add_argument('--disable-dev-shm-usage')
 
-        # Указываем путь к ChromeDriver
-        with webdriver.Chrome(executable_path='/usr/bin/chromedriver', options=options) as driver:
+        with webdriver.Chrome(options=options) as driver:
             logger.info("Navigating to Epic Games Store...")
             driver.get("https://store.epicgames.com/en-US/")
 
