@@ -18,5 +18,6 @@ USER appuser
 WORKDIR /home/appuser/app
 
 COPY . /home/appuser/app/
+RUN rm -rf /home/appuser/.cache/selenium /home/appuser/.config/google-chrome
 
 CMD ["python", "epic_games_scraper.py"]
