@@ -5,19 +5,18 @@ WORKDIR /app
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN apt-get update && apt-get install -y wget unzip apt-transport-https
+RUN apt-get update && \
+    apt-get install -y wget gnupg2 ca-certificates && \
+    wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+    sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' && \
+    apt-get update && \
+    apt-get install -y google-chrome-stable
 
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
-RUN echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+RUN wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/$(curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip && \
+    unzip /tmp/chromedriver.zip -d /usr/bin/ && \
+    chmod +x /usr/bin/chromedriver
 
-RUN apt-get update && apt-get install -y google-chrome-stable
-
-RUN google-chrome --version
-
-RUN wget https://chromedriver.storage.googleapis.com/114.0.5735.90/chromedriver_linux64.zip
-RUN unzip chromedriver_linux64.zip -d /usr/bin
-
-RUN chmod +x /usr/bin/chromedriver
+RUN rm /tmp/chromedriver.zip
 
 RUN mkdir -p /app/data
 RUN chown -R nobody:nogroup /app/data
