@@ -9,6 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
 from fake_useragent import UserAgent
 
 import sqlite3
@@ -36,9 +37,6 @@ if BOT_TOKEN is None:
     exit(1) # Прекращаем выполнение программы, если токен не найден
 DATABASE_FILE = "free_games.db"
 SCRAPE_TIME = "19:00"  # Time to scrape every day (24-hour format)
-
-chrome_driver_path = "/usr/local/bin/chromedriver"
-service = ChromeService(executable_path=chrome_driver_path)
 
 # --- Database Functions ---
 async def create_database(application: Application):
@@ -101,7 +99,7 @@ def scrape_epic_games():
         options.add_argument(f'user-agent={user_agent}')
         logger.info(f"Using User-Agent: {user_agent}")
 
-        with webdriver.Chrome(options=options) as driver:
+        with webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options) as driver:
             logger.info("Navigating to Epic Games Store...")
             driver.get("https://store.epicgames.com/en-US/")
 
