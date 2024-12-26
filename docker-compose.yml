@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  epic_games_scraper:
+    build: .
+    container_name: epic_games_scraper
+    restart: unless-stopped
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - SCRAPE_TIME=${SCRAPE_TIME}
+    volumes:
+      - ./data:/home/appuser/app/data
+    user: appuser

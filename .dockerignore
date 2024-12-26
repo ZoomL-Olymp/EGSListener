@@ -1,8 +1,9 @@
+.git
 __pycache__
 .venv
+.vscode
 *.pyc
 *.pyo
 *.log
-.vscode/
 *.db
 ./data
