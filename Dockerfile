@@ -18,6 +18,5 @@ USER appuser
 WORKDIR /home/appuser/app
 
 COPY . /home/appuser/app/
-RUN rm -rf /home/appuser/app/epic_games_scraper.log
 
 CMD ["python", "epic_games_scraper.py"]

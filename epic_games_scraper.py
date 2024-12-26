@@ -8,6 +8,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service as ChromeService
 from fake_useragent import UserAgent
 
 import sqlite3
@@ -35,6 +36,9 @@ if BOT_TOKEN is None:
     exit(1) # Прекращаем выполнение программы, если токен не найден
 DATABASE_FILE = "free_games.db"
 SCRAPE_TIME = "19:00"  # Time to scrape every day (24-hour format)
+
+chrome_driver_path = "/usr/local/bin/chromedriver"
+service = ChromeService(executable_path=chrome_driver_path)
 
 # --- Database Functions ---
 async def create_database(application: Application):
