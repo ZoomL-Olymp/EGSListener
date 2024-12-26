@@ -13,11 +13,10 @@ RUN apt-get update && \
     apt-get install -y google-chrome-stable
 
 RUN wget -O /tmp/chromedriver.zip https://storage.googleapis.com/chrome-for-testing-public/131.0.6778.204/linux64/chromedriver-linux64.zip && \
-    mkdir -p /tmp/chrome-unzip && \
-    unzip /tmp/chromedriver.zip -d /tmp/chrome-unzip && \
-    mv /tmp/chrome-unzip/chrome-linux64/chromedriver-linux64/chromedriver /usr/bin/chromedriver && \
-    chmod +x /usr/bin/chromedriver && \
-    rm -rf /tmp/chromedriver.zip /tmp/chrome-unzip
+    unzip /tmp/chromedriver.zip -d /usr/bin/ && \
+    chmod +x /usr/bin/chromedriver
+
+    RUN rm /tmp/chromedriver.zip
 
 RUN mkdir -p /app/data
 RUN chown -R nobody:nogroup /app/data
@@ -27,5 +26,3 @@ USER appuser
 WORKDIR /home/appuser/app
 
 COPY . /home/appuser/app/
-
-CMD ["python", "epic_games_scraper.py"]
