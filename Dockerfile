@@ -16,9 +16,9 @@ RUN wget -O /tmp/chromedriver.zip https://storage.googleapis.com/chrome-for-test
     chmod +x /usr/bin/chromedriver-linux64/chromedriver && \
     rm /tmp/chromedriver.zip
 
-RUN useradd -ms /bin/bash appuser && \
-    mkdir -p /home/appuser/app/data && \
-    chown -R appuser:appuser /home/appuser/app/data
+    RUN useradd -ms /bin/bash appuser && \
+    mkdir -p /home/appuser/app && \
+    chown -R appuser:appuser /home/appuser/app
 
 USER appuser
 WORKDIR /home/appuser/app

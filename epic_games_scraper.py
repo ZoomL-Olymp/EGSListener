@@ -17,7 +17,8 @@ import telegram
 from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue
 
 # --- Logging ---
-logging.basicConfig(filename='epic_games_scraper.log', level=logging.INFO,
+log_filename = f"epic_games_scraper_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+logging.basicConfig(filename=log_filename, level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 logger = logging.getLogger(__name__)
