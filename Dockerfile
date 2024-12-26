@@ -14,9 +14,8 @@ RUN apt-get update && \
 
 RUN wget -O /tmp/chromedriver.zip https://storage.googleapis.com/chrome-for-testing-public/131.0.6778.204/linux64/chromedriver-linux64.zip && \
     unzip /tmp/chromedriver.zip -d /usr/bin/ && \
-    chmod +x /usr/bin/chromedriver
-
-    RUN rm /tmp/chromedriver.zip
+    chmod +x /usr/bin/chromedriver-linux64/chromedriver \
+    rm /tmp/chromedriver.zip
 
 RUN mkdir -p /app/data
 RUN chown -R nobody:nogroup /app/data
