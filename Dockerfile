@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
-# Установка зависимостей, включая curl и unzip для скачивания ChromeDriver
+
 RUN apt-get update && \
     apt-get install -y wget gnupg2 ca-certificates curl unzip && \
     wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
@@ -12,12 +12,12 @@ RUN apt-get update && \
     apt-get update && \
     apt-get install -y google-chrome-stable
 
-# Установка ChromeDriver
 RUN wget -O /tmp/chromedriver.zip https://storage.googleapis.com/chrome-for-testing-public/131.0.6778.204/linux64/chrome-linux64.zip && \
-    unzip /tmp/chromedriver.zip -d /usr/bin/ && \
-    chmod +x /usr/bin/chromedriver
-
-    RUN rm /tmp/chromedriver.zip
+    mkdir -p /tmp/chrome-unzip && \
+    unzip /tmp/chromedriver.zip -d /tmp/chrome-unzip && \
+    mv /tmp/chrome-unzip/chrome-linux64/chromedriver /usr/bin/chromedriver && \
+    chmod +x /usr/bin/chromedriver && \
+    rm -rf /tmp/chromedriver.zip /tmp/chrome-unzip
 
 RUN mkdir -p /app/data
 RUN chown -R nobody:nogroup /app/data
