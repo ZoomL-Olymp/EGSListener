@@ -1,4 +1,5 @@
 import logging
+import sys
 import time
 import os
 from datetime import datetime, timedelta
@@ -23,7 +24,7 @@ logging.basicConfig(filename=log_filename, level=logging.INFO,
 
 logger = logging.getLogger(__name__)
 
-stream_handler = logging.StreamHandler()
+stream_handler = logging.StreamHandler(stream=sys.stdout)
 stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 
 logger.addHandler(stream_handler)
@@ -97,7 +98,7 @@ def scrape_epic_games():
         user_agent = ua.random
         options.add_argument(f'user-agent={user_agent}')
         logger.info(f"Using User-Agent: {user_agent}")
-        options.add_argument('--no-sandbox') # Recommended for headless chrome inside docker
+        options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
 
         with webdriver.Chrome(options=options) as driver:
@@ -105,7 +106,7 @@ def scrape_epic_games():
             driver.get("https://store.epicgames.com/en-US/")
 
             try:
-                title_element = WebDriverWait(driver, 5).until(  # Increased timeout for reliability
+                title_element = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "h6.eds_1ypbntd0.eds_1ypbntd7.eds_1ypbntdq"))
                 )
                 title = title_element.text
