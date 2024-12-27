@@ -40,6 +40,7 @@ logger.addHandler(stderr_handler)
 
 # --- Configuration ---
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
+TIMEZONE = pytz.timezone("US/Pacific") # Oregon timezone, could be any timezone
 
 if BOT_TOKEN is None:
     logger.error("BOT_TOKEN wasn't found!")
@@ -126,11 +127,12 @@ def scrape_epic_games():
                 )
                 date1 = date_elements[0].text
                 date2 = date_elements[1].text
-                date_str = f"{date1} {date2}" # Combine date and time string
+                date_str = f"{date1} {date2}"
 
                 try:
-                    free_until = parser.parse(date_str, tzinfos={"PST": pytz.timezone("US/Western")})
-                    free_until = free_until.astimezone(timezone.utc)
+                    free_until = parser.parse(date_str).replace(tzinfo=TIMEZONE)
+                    free_until = free_until.astimezone(timezone.utc).replace(tzinfo=None)
+
                     logger.info(f"Found free until date (UTC): {free_until}")
 
                     end_time = time.time()
@@ -161,14 +163,15 @@ async def freegame(update, context):
     if game_info:
         title, free_until_str = game_info
         try:
-            free_until = datetime.strptime(free_until_str, "%Y-%m-%d %H:%M %Z").replace(tzinfo=timezone.utc).astimezone()
+            free_until = datetime.fromisoformat(free_until_str.replace(' UTC', '+00:00')) # Parse with UTC timezone
 
             free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
             await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_formatted}")
 
 
-        except ValueError: # Handle cases where there's no timezone info
-            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_str} (Unknown Timezone)")
+        except ValueError:
+            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)") # More specific error message
+
 
 
     else:
