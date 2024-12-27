@@ -6,7 +6,6 @@ services:
     restart: unless-stopped
     environment:
       - BOT_TOKEN=${BOT_TOKEN}
-      - SCRAPE_TIME=${SCRAPE_TIME}
     volumes:
       - ./data:/home/appuser/app/data
     user: appuser

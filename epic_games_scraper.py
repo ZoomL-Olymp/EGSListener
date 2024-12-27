@@ -43,7 +43,6 @@ if BOT_TOKEN is None:
     logger.error("BOT_TOKEN wasn't found!")
     exit(1) # Прекращаем выполнение программы, если токен не найден
 DATABASE_FILE = "free_games.db"
-SCRAPE_TIME = "19:00"  # Time to scrape every day (24-hour format)
 
 # --- Database Functions ---
 async def create_database(application: Application):
@@ -189,7 +188,6 @@ def run_bot(application: Application):
 
 
     application.job_queue.run_once(lambda c: first_scrape_and_update(application) , when=0)
-    aioschedule.every().day.at(SCRAPE_TIME).do(lambda: scrape_and_update(application))
 
     logger.info("Starting bot...")
     application.run_polling()
