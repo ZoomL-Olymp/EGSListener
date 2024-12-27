@@ -169,9 +169,26 @@ async def scrape_and_update(application: Application):
         if free_until and title:
             save_game_info(title, free_until.strftime("%Y-%m-%d %H:%M"))
             logger.info(f"New free game found and saved: {title}")
-            await application.bot.send_message(chat_id=CHAT_ID, text=f"New free game found!\n{title}\nFree until: {date}") # Send notification
+            await application.bot.send_message(chat_id=CHAT_ID, text=f"New free game found!\n{title}\nFree until: {free_until}") # Send notification
+            # Schedule next scrape here:
+            now = datetime.now()
+            time_diff = free_until - now
+
+            if time_diff > timedelta(0):
+                logger.info(f"Scheduling next scrape in {time_diff}")
+                aioschedule.clear()  # Clear any existing schedules
+
+                application.job_queue.run_once(lambda c: scrape_and_update(application), when=free_until)
+            else: # free_until is in the past
+               tomorrow = (datetime.now() + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+               logger.info(f"Scheduling for tomorrow at 10:00")
+               application.job_queue.run_once(lambda c: scrape_and_update(application), when=tomorrow)
+               aioschedule.every().day.at("10:00").do(lambda: scrape_and_update(application)) # Fallback to daily schedule
         else:
-            logger.warning("No new free game found.")
+            tomorrow = (datetime.now() + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+            logger.warning(f"Scraping failed, scheduling for tomorrow at 10:00")
+            application.job_queue.run_once(lambda c: scrape_and_update(application), when=tomorrow)
+            aioschedule.every().day.at("10:00").do(lambda: scrape_and_update(application)) # Fallback to daily schedule
     except Exception as e:
         logger.error(f"Error during scraping and update: {e}")
 
@@ -181,6 +198,7 @@ async def scheduler(application: Application):
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(1)
+
 
 async def shutdown(application: Application):
     logger.info("Shutting down bot...")
@@ -197,7 +215,6 @@ def run_bot(application: Application):
 
 
     application.job_queue.run_once(lambda c: first_scrape_and_update(application) , when=0)
-    aioschedule.every().day.at(SCRAPE_TIME).do(lambda: scrape_and_update(application))
 
     logger.info("Starting bot...")
     application.run_polling()
