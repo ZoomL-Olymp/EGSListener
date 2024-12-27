@@ -40,7 +40,6 @@ logger.addHandler(stderr_handler)
 
 # --- Configuration ---
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-TIMEZONE = pytz.timezone("US/Pacific") # Oregon timezone, could be any timezone
 
 if BOT_TOKEN is None:
     logger.error("BOT_TOKEN wasn't found!")
@@ -131,13 +130,13 @@ def scrape_epic_games():
 
 
                 try:
-                    free_until_local = parser.parse(date_str).replace(tzinfo=TIMEZONE)
-                    free_until_utc = free_until_local.astimezone(timezone.utc)
+                    free_until = datetime.fromisoformat(date_str.replace(" UTC", "+00:00").replace("Z", "+00:00"))
+                    logger.info(f"Found free until date (UTC): {free_until}")
 
                     end_time = time.time()
                     elapsed_time = end_time - start_time
                     logger.info(f"Scraping completed in {elapsed_time:.2f} seconds.")
-                    return free_until_utc, title # Return datetime object
+                    return free_until, title
 
                 except ValueError as e:
                      logger.error(f"Error parsing date: {e}. Date string: {date_str}")
@@ -175,7 +174,6 @@ async def scrape_and_update(application: Application):
         if free_until and title:
             save_game_info(title, free_until.isoformat())
             logger.info(f"New free game found and saved: {title}")
-            # Schedule next scrape here:
             now = datetime.now(timezone.utc)
             time_diff = free_until - now
 
