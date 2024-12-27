@@ -16,6 +16,7 @@ import asyncio
 import aioschedule
 import telegram
 from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue
+from dateutil import parser
 
 # --- Logging ---
 log_filename = f"epic_games_scraper_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
@@ -124,13 +125,20 @@ def scrape_epic_games():
                 )
                 date1 = date_elements[0].text
                 date2 = date_elements[1].text
-                date = f"{date1} {date2}"
-                logger.info(f"Found free until date: {date}")
+                date_str = f"{date1} {date2}" # Combine date and time string
 
-                end_time = time.time()
-                elapsed_time = end_time - start_time
-                logger.info(f"Scraping completed in {elapsed_time:.2f} seconds.")
-                return date, title
+                try:
+                    free_until = parser.parse(date_str) # Parse the date string
+                    logger.info(f"Found free until date: {free_until}")
+
+                    end_time = time.time()
+                    elapsed_time = end_time - start_time
+                    logger.info(f"Scraping completed in {elapsed_time:.2f} seconds.")
+                    return free_until, title # Return datetime object
+
+                except ValueError as e:
+                     logger.error(f"Error parsing date: {e}. Date string: {date_str}")
+                     return None, None
 
             except Exception as e:
                 logger.error(f"Error finding elements: {e}")
