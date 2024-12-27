@@ -121,13 +121,11 @@ def scrape_epic_games():
                 title = title_element.text
                 logger.info(f"Found game title: {title}")
 
-                date_elements = WebDriverWait(driver, 5).until(
-                    EC.presence_of_all_elements_located((By.TAG_NAME, "time"))
+                date_element = WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "time")) 
                 )
-                date1 = date_elements[0].text
-                date2 = date_elements[1].text
-                date_str = f"{date1} {date2}"
-
+                
+                date_str = date_element.get_attribute("datetime")
 
                 try:
                     free_until = datetime.fromisoformat(date_str.replace(" UTC", "+00:00").replace("Z", "+00:00"))
@@ -170,11 +168,11 @@ async def freegame(update, context):
 async def scrape_and_update(application: Application):
     logger.info("Starting scheduled scrape and update...")
     try:
+        now = datetime.now(timezone.utc)
         free_until, title = scrape_epic_games()
         if free_until and title:
             save_game_info(title, free_until.isoformat())
             logger.info(f"New free game found and saved: {title}")
-            now = datetime.now(timezone.utc)
             time_diff = free_until - now
 
             if time_diff > timedelta(0):
