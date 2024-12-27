@@ -132,7 +132,7 @@ def scrape_epic_games():
 
                 try:
                     free_until_local = parser.parse(date_str).replace(tzinfo=TIMEZONE)
-                    free_until_utc = free_until_local.astimezone(timezone.utc).replace(tzinfo=None)
+                    free_until_utc = free_until_local.astimezone(tzinfo=timezone.utc)
 
                     end_time = time.time()
                     elapsed_time = end_time - start_time
@@ -161,7 +161,7 @@ async def freegame(update, context):
     if game_info:
         title, free_until_str = game_info
         try:
-            free_until = datetime.fromisoformat(free_until_str.replace(' UTC', '+00:00'))
+            free_until = datetime.fromisoformat(free_until_str)
             free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
             await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_formatted}")
 
@@ -173,7 +173,7 @@ async def scrape_and_update(application: Application):
     try:
         free_until, title = scrape_epic_games()
         if free_until and title:
-            save_game_info(title, free_until.strftime("%Y-%m-%d %H:%M %Z"))
+            save_game_info(title, free_until.isoformat())
             logger.info(f"New free game found and saved: {title}")
             # Schedule next scrape here:
             now = datetime.now()
