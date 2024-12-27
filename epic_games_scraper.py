@@ -17,6 +17,7 @@ import aioschedule
 import telegram
 from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue
 from dateutil import parser
+import pytz
 
 # --- Logging ---
 log_filename = f"epic_games_scraper_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
@@ -128,8 +129,9 @@ def scrape_epic_games():
                 date_str = f"{date1} {date2}" # Combine date and time string
 
                 try:
-                    free_until = parser.parse(date_str) # Parse the date string
-                    logger.info(f"Found free until date: {free_until}")
+                    free_until = parser.parse(date_str, tzinfos={"PST": pytz.timezone("US/Western")})
+                    free_until = free_until.astimezone(timezone.utc)
+                    logger.info(f"Found free until date (UTC): {free_until}")
 
                     end_time = time.time()
                     elapsed_time = end_time - start_time
