@@ -220,6 +220,31 @@ async def freegame(update, context):
         except ValueError:
             await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)")
 
+async def subscribe(update, context):
+    chat_id = update.effective_chat.id
+    if add_subscriber(chat_id):
+        await update.message.reply_text("You have been subscribed to free game notifications!")
+    else:
+        await update.message.reply_text("Failed to subscribe. Please try again later.")
+
+async def unsubscribe(update, context):
+    chat_id = update.effective_chat.id
+    if remove_subscriber(chat_id):
+        await update.message.reply_text("You have been unsubscribed from free game notifications.")
+    else:
+        await update.message.reply_text("Failed to unsubscribe. Please try again later.")
+
+async def send_notification(application: Application, title, free_until):
+    subscribers = get_subscribers()
+    if subscribers:
+      free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
+      for chat_id in subscribers:
+          try:
+              await application.bot.send_message(chat_id=chat_id, text=f"New free game available!\n{title}\nFree until: {free_until_formatted}")
+              logger.info(f"Notification sent to {chat_id}")
+          except Exception as e:
+              logger.error(f"Failed to send message to {chat_id}: {e}")
+
 async def scrape_and_update(application: Application):
     logger.info("Starting scheduled scrape and update...")
     try:
@@ -287,5 +312,7 @@ if __name__ == "__main__":
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("freegame", freegame))
+    application.add_handler(CommandHandler("subscribe", subscribe))
+    application.add_handler(CommandHandler("unsubscribe", unsubscribe))
 
     run_bot(application)
