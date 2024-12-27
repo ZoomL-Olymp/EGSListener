@@ -107,7 +107,48 @@ def get_last_saved_game():
     except Exception as e:
         logger.error(f"Error retrieving last saved game: {e}")
         return None
+    
+def add_subscriber(chat_id):
+    logger.info(f"Adding subscriber: {chat_id}")
+    try:
+        conn = sqlite3.connect(DATABASE_FILE)
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR IGNORE INTO subscribers (chat_id) VALUES (?)", (chat_id,))
+        conn.commit()
+        conn.close()
+        logger.info("Subscriber added successfully.")
+        return True
+    except Exception as e:
+        logger.error(f"Error adding subscriber: {e}")
+        return False
 
+def remove_subscriber(chat_id):
+    logger.info(f"Removing subscriber: {chat_id}")
+    try:
+        conn = sqlite3.connect(DATABASE_FILE)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM subscribers WHERE chat_id = ?", (chat_id,))
+        conn.commit()
+        conn.close()
+        logger.info("Subscriber removed successfully.")
+        return True
+    except Exception as e:
+        logger.error(f"Error removing subscriber: {e}")
+        return False
+
+def get_subscribers():
+    logger.info("Retrieving subscribers...")
+    try:
+        conn = sqlite3.connect(DATABASE_FILE)
+        cursor = conn.cursor()
+        cursor.execute("SELECT chat_id FROM subscribers")
+        subscribers = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        logger.info(f"Subscribers retrieved: {subscribers}")
+        return subscribers
+    except Exception as e:
+        logger.error(f"Error retrieving subscribers: {e}")
+        return []
 
 # --- Scraping Function ---
 def scrape_epic_games():
