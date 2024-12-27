@@ -129,21 +129,19 @@ def scrape_epic_games():
                 date2 = date_elements[1].text
                 date_str = f"{date1} {date2}"
 
-                try:
-                    free_until = parser.parse(date_str).replace(tzinfo=TIMEZONE)
-                    free_until = free_until.astimezone(timezone.utc).replace(tzinfo=None)
 
-                    logger.info(f"Found free until date (UTC): {free_until}")
+                try:
+                    free_until_local = parser.parse(date_str).replace(tzinfo=TIMEZONE)
+                    free_until_utc = free_until_local.astimezone(timezone.utc).replace(tzinfo=None)
 
                     end_time = time.time()
                     elapsed_time = end_time - start_time
                     logger.info(f"Scraping completed in {elapsed_time:.2f} seconds.")
-                    return free_until, title # Return datetime object
+                    return free_until_utc, title # Return datetime object
 
                 except ValueError as e:
                      logger.error(f"Error parsing date: {e}. Date string: {date_str}")
                      return None, None
-
             except Exception as e:
                 logger.error(f"Error finding elements: {e}")
                 return None, None
@@ -163,19 +161,12 @@ async def freegame(update, context):
     if game_info:
         title, free_until_str = game_info
         try:
-            free_until = datetime.fromisoformat(free_until_str.replace(' UTC', '+00:00')) # Parse with UTC timezone
-
+            free_until = datetime.fromisoformat(free_until_str.replace(' UTC', '+00:00'))
             free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
             await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_formatted}")
 
-
         except ValueError:
-            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)") # More specific error message
-
-
-
-    else:
-        await update.message.reply_text("No free game information available yet.")
+            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)")
 
 async def scrape_and_update(application: Application):
     logger.info("Starting scheduled scrape and update...")
