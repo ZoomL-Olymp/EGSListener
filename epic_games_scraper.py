@@ -214,7 +214,7 @@ def run_bot(application: Application):
         await scrape_and_update(app)
 
 
-    application.job_queue.run_once(lambda c: first_scrape_and_update(application) , when=0)
+    application.job_queue.run_once(first_scrape_and_update(application) , when=0)
 
     logger.info("Starting bot...")
     application.run_polling()
