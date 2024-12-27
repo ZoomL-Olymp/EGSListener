@@ -2,7 +2,7 @@ import logging
 import sys
 import time
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -157,8 +157,18 @@ async def start(update, context):
 async def freegame(update, context):
     game_info = get_last_saved_game()
     if game_info:
-        title, free_until = game_info
-        await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until}")
+        title, free_until_str = game_info
+        try:
+            free_until = datetime.strptime(free_until_str, "%Y-%m-%d %H:%M %Z").replace(tzinfo=timezone.utc).astimezone()
+
+            free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
+            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_formatted}")
+
+
+        except ValueError: # Handle cases where there's no timezone info
+            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_str} (Unknown Timezone)")
+
+
     else:
         await update.message.reply_text("No free game information available yet.")
 
@@ -167,9 +177,8 @@ async def scrape_and_update(application: Application):
     try:
         free_until, title = scrape_epic_games()
         if free_until and title:
-            save_game_info(title, free_until.strftime("%Y-%m-%d %H:%M"))
+            save_game_info(title, free_until.strftime("%Y-%m-%d %H:%M %Z"))
             logger.info(f"New free game found and saved: {title}")
-            await application.bot.send_message(chat_id=CHAT_ID, text=f"New free game found!\n{title}\nFree until: {free_until}") # Send notification
             # Schedule next scrape here:
             now = datetime.now()
             time_diff = free_until - now
