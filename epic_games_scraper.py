@@ -2,7 +2,7 @@ import logging
 import sys
 import time
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -16,6 +16,8 @@ import asyncio
 import aioschedule
 import telegram
 from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue
+from dateutil import parser
+import pytz
 
 # --- Logging ---
 log_filename = f"epic_games_scraper_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
@@ -118,19 +120,24 @@ def scrape_epic_games():
                 title = title_element.text
                 logger.info(f"Found game title: {title}")
 
-                date_elements = WebDriverWait(driver, 5).until(
-                    EC.presence_of_all_elements_located((By.TAG_NAME, "time"))
+                date_element = WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "time")) 
                 )
-                date1 = date_elements[0].text
-                date2 = date_elements[1].text
-                date = f"{date1} {date2}"
-                logger.info(f"Found free until date: {date}")
+                
+                date_str = date_element.get_attribute("datetime")
 
-                end_time = time.time()
-                elapsed_time = end_time - start_time
-                logger.info(f"Scraping completed in {elapsed_time:.2f} seconds.")
-                return date, title
+                try:
+                    free_until = datetime.fromisoformat(date_str.replace(" UTC", "+00:00").replace("Z", "+00:00"))
+                    logger.info(f"Found free until date (UTC): {free_until}")
 
+                    end_time = time.time()
+                    elapsed_time = end_time - start_time
+                    logger.info(f"Scraping completed in {elapsed_time:.2f} seconds.")
+                    return free_until, title
+
+                except ValueError as e:
+                     logger.error(f"Error parsing date: {e}. Date string: {date_str}")
+                     return None, None
             except Exception as e:
                 logger.error(f"Error finding elements: {e}")
                 return None, None
@@ -148,21 +155,40 @@ async def start(update, context):
 async def freegame(update, context):
     game_info = get_last_saved_game()
     if game_info:
-        title, free_until = game_info
-        await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until}")
-    else:
-        await update.message.reply_text("No free game information available yet.")
+        title, free_until_str = game_info
+        try:
+            free_until = datetime.fromisoformat(free_until_str)
+            free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
+            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_formatted}")
+
+        except ValueError:
+            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)")
 
 async def scrape_and_update(application: Application):
     logger.info("Starting scheduled scrape and update...")
     try:
-        date, title = scrape_epic_games()
-        if date and title:
-            save_game_info(title, date)
+        now = datetime.now(timezone.utc)
+        free_until, title = scrape_epic_games()
+        if free_until and title:
+            save_game_info(title, free_until.isoformat())
             logger.info(f"New free game found and saved: {title}")
-            await application.bot.send_message(chat_id=CHAT_ID, text=f"New free game found!\n{title}\nFree until: {date}") # Send notification
+            time_diff = free_until - now
+
+            if time_diff > timedelta(0):
+                logger.info(f"Scheduling next scrape in {time_diff}")
+                aioschedule.clear()  # Clear any existing schedules
+
+                application.job_queue.run_once(lambda c: scrape_and_update(application), when=free_until)
+            else: # free_until is in the past
+               tomorrow = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+               logger.info(f"Scheduling for tomorrow at 10:00")
+               application.job_queue.run_once(lambda c: scrape_and_update(application), when=tomorrow)
+               aioschedule.every().day.at("10:00").do(lambda: scrape_and_update(application)) # Fallback to daily schedule
         else:
-            logger.warning("No new free game found.")
+            tomorrow = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+            logger.warning(f"Scraping failed, scheduling for tomorrow at 10:00")
+            application.job_queue.run_once(lambda c: scrape_and_update(application), when=tomorrow)
+            aioschedule.every().day.at("10:00").do(lambda: scrape_and_update(application)) # Fallback to daily schedule
     except Exception as e:
         logger.error(f"Error during scraping and update: {e}")
 
@@ -172,6 +198,7 @@ async def scheduler(application: Application):
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(1)
+
 
 async def shutdown(application: Application):
     logger.info("Shutting down bot...")
@@ -187,7 +214,7 @@ def run_bot(application: Application):
         await scrape_and_update(app)
 
 
-    application.job_queue.run_once(lambda c: first_scrape_and_update(application) , when=0)
+    application.job_queue.run_once(lambda c: first_scrape_and_update(application), when=0)
 
     logger.info("Starting bot...")
     application.run_polling()

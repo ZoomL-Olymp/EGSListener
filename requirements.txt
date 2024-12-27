@@ -33,3 +33,5 @@ webdriver-manager==4.0.2
 websocket-client==1.8.0
 wsproto==1.2.0
 beautifulsoup4==4.12.3
+python-dateutil==2.9.0.post0
+six==1.17.0
