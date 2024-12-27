@@ -176,7 +176,7 @@ async def scrape_and_update(application: Application):
             save_game_info(title, free_until.isoformat())
             logger.info(f"New free game found and saved: {title}")
             # Schedule next scrape here:
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
             time_diff = free_until - now
 
             if time_diff > timedelta(0):
@@ -185,12 +185,12 @@ async def scrape_and_update(application: Application):
 
                 application.job_queue.run_once(lambda c: scrape_and_update(application), when=free_until)
             else: # free_until is in the past
-               tomorrow = (datetime.now() + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+               tomorrow = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
                logger.info(f"Scheduling for tomorrow at 10:00")
                application.job_queue.run_once(lambda c: scrape_and_update(application), when=tomorrow)
                aioschedule.every().day.at("10:00").do(lambda: scrape_and_update(application)) # Fallback to daily schedule
         else:
-            tomorrow = (datetime.now() + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+            tomorrow = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
             logger.warning(f"Scraping failed, scheduling for tomorrow at 10:00")
             application.job_queue.run_once(lambda c: scrape_and_update(application), when=tomorrow)
             aioschedule.every().day.at("10:00").do(lambda: scrape_and_update(application)) # Fallback to daily schedule
