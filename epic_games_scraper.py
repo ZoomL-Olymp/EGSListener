@@ -165,9 +165,9 @@ async def freegame(update, context):
 async def scrape_and_update(application: Application):
     logger.info("Starting scheduled scrape and update...")
     try:
-        date, title = scrape_epic_games()
-        if date and title:
-            save_game_info(title, date)
+        free_until, title = scrape_epic_games()
+        if free_until and title:
+            save_game_info(title, free_until.strftime("%Y-%m-%d %H:%M"))
             logger.info(f"New free game found and saved: {title}")
             await application.bot.send_message(chat_id=CHAT_ID, text=f"New free game found!\n{title}\nFree until: {date}") # Send notification
         else:
