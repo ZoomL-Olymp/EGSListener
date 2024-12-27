@@ -132,7 +132,7 @@ def scrape_epic_games():
 
                 try:
                     free_until_local = parser.parse(date_str).replace(tzinfo=TIMEZONE)
-                    free_until_utc = free_until_local.astimezone(tzinfo=timezone.utc)
+                    free_until_utc = free_until_local.astimezone(timezone.utc)
 
                     end_time = time.time()
                     elapsed_time = end_time - start_time
