@@ -251,20 +251,35 @@ async def scrape_and_update(application: Application):
         now = datetime.now(timezone.utc)
         free_until, title = scrape_epic_games()
         if free_until and title:
-            save_game_info(title, free_until.isoformat())
-            logger.info(f"New free game found and saved: {title}")
-            time_diff = free_until - now
+            last_game = get_last_saved_game()
+            if not last_game or last_game[0] != title:
+              save_game_info(title, free_until.isoformat())
+              logger.info(f"New free game found and saved: {title}")
+              await send_notification(application, title, free_until)
 
-            if time_diff > timedelta(0):
-                logger.info(f"Scheduling next scrape in {time_diff}")
-                aioschedule.clear()  # Clear any existing schedules
+              time_diff = free_until - now
 
-                application.job_queue.run_once(lambda c: scrape_and_update(application), when=free_until)
-            else: # free_until is in the past
-               tomorrow = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
-               logger.info(f"Scheduling for tomorrow at 10:00")
-               application.job_queue.run_once(lambda c: scrape_and_update(application), when=tomorrow)
-               aioschedule.every().day.at("10:00").do(lambda: scrape_and_update(application)) # Fallback to daily schedule
+              if time_diff > timedelta(0):
+                  logger.info(f"Scheduling next scrape in {time_diff}")
+                  aioschedule.clear()  # Clear any existing schedules
+                  application.job_queue.run_once(lambda c: scrape_and_update(application), when=free_until)
+              else: # free_until is in the past
+                 tomorrow = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+                 logger.info(f"Scheduling for tomorrow at 10:00")
+                 application.job_queue.run_once(lambda c: scrape_and_update(application), when=tomorrow)
+                 aioschedule.every().day.at("10:00").do(lambda: scrape_and_update(application)) # Fallback to daily schedule
+            else:
+                logger.info(f"Game hasn't changed")
+                time_diff = free_until - now
+                if time_diff > timedelta(0):
+                    logger.info(f"Scheduling next scrape in {time_diff}")
+                    aioschedule.clear()  # Clear any existing schedules
+                    application.job_queue.run_once(lambda c: scrape_and_update(application), when=free_until)
+                else:
+                    tomorrow = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+                    logger.info(f"Scheduling for tomorrow at 10:00")
+                    application.job_queue.run_once(lambda c: scrape_and_update(application), when=tomorrow)
+                    aioschedule.every().day.at("10:00").do(lambda: scrape_and_update(application)) # Fallback to daily schedule
         else:
             tomorrow = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
             logger.warning(f"Scraping failed, scheduling for tomorrow at 10:00")
