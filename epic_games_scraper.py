@@ -65,6 +65,21 @@ async def create_database(application: Application):
     except Exception as e:
         logger.error(f"Error initializing database: {e}")
 
+    try:
+        conn = sqlite3.connect(DATABASE_FILE)
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS subscribers (
+                chat_id INTEGER PRIMARY KEY
+            )
+        ''')
+        conn.commit()
+        conn.close()
+        logger.info("Subscribers table initialized successfully.")
+
+    except Exception as e:
+        logger.error(f"Error initializing subscribers table: {e}")
+
 
 def save_game_info(title, free_until):
     logger.info(f"Saving game info: {title} - {free_until}")
