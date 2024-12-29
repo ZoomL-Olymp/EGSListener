@@ -232,7 +232,6 @@ async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 title="Current Free Game",
                 input_message_content=telegram.InputTextMessageContent(text, disable_web_page_preview=True),
                 description=description,
-                thumb_url="https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Epic_Games_logo.svg/2560px-Epic_Games_logo.svg.png",
                 reply_markup=keyboard
             )
         ]
