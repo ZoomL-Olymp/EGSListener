@@ -209,26 +209,29 @@ async def start(update, context):
     await update.message.reply_text("Welcome! Use /freegame to get the current free game.")
 
 async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.info("freegame function called")  # Log entry at the start
+
     game_info = get_last_saved_game()
     if game_info:
         title, free_until_str = game_info
+
         try:
             free_until = datetime.fromisoformat(free_until_str)
             free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
             text = f"Current free game:\n{title}\nFree until: {free_until_formatted}"
-            description = f"Free until {free_until_formatted}" # Short description for inline results
-
-
+            description = f"Free until {free_until_formatted}"
         except ValueError:
+            logger.error(f"Error parsing date: {free_until_str}") # Log the error
             text = f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)"
             description = "Invalid date format"
     else:
+        logger.warning("No game info found in the database.")
         text = "No free game information found."
         description = "No free game available"
 
     if update.inline_query:
-        # Example keyboard with a URL button (optional)
-        keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Get the Game!", url="https://store.epicgames.com/en-US/")]]) # Example URL – replace with the actual game URL
+        logger.info("Processing inline query...")
+        keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Get the Game!", url="https://store.epicgames.com/en-US/")]])
 
         results = [
             telegram.InlineQueryResultArticle(
@@ -241,10 +244,24 @@ async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
             )
         ]
-        await update.inline_query.answer(results, cache_time=1) 
 
-    else:  # Handle regular command
-        await update.message.reply_text(text)
+        try:
+            await update.inline_query.answer(results, cache_time=1)
+            logger.info("Inline query results sent.")
+        except Exception as e:
+            logger.error(f"Error sending inline query results: {e}")
+
+
+    elif update.message:  # Check for regular message/command
+        logger.info("Processing regular command/message...") # Log for regular command
+
+        try:
+            await update.message.reply_text(text)
+            logger.info("Message sent.")
+        except Exception as e:
+            logger.error(f"Error sending message: {e}")
+    else: # Neither inline query nor regular message
+      logger.warning(f"Unexpected update type: {update}")
 
 async def subscribe(update, context):
     chat_id = update.effective_chat.id
@@ -336,6 +353,7 @@ def run_bot(application: Application):
 
 
     application.job_queue.run_once(lambda c: first_scrape_and_update(application), when=0)
+    application.add_handler(CommandHandler("freegame", freegame))
     application.add_handler(InlineQueryHandler(freegame))
 
     logger.info("Starting bot...")
