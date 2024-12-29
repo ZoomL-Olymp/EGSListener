@@ -15,9 +15,10 @@ import sqlite3
 import asyncio
 import aioschedule
 import telegram
-from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue
+from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue, InlineQueryHandler
 from dateutil import parser
 import pytz
+import uuid
 
 # --- Logging ---
 log_filename = f"epic_games_scraper_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
@@ -202,23 +203,36 @@ def scrape_epic_games():
         logger.exception(f"An unexpected error occurred during scraping: {e}")
         return None, None
 
-
-
 # --- Telegram Bot Functions ---
 async def start(update, context):
     await update.message.reply_text("Welcome! Use /freegame to get the current free game.")
 
-async def freegame(update, context):
+async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     game_info = get_last_saved_game()
     if game_info:
         title, free_until_str = game_info
         try:
             free_until = datetime.fromisoformat(free_until_str)
             free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
-            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_formatted}")
+            text = f"Current free game:\n{title}\nFree until: {free_until_formatted}"
 
         except ValueError:
-            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)")
+            text = f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)"
+    else:
+        text = "No free game information found."
+
+    if update.inline_query:  # Handle inline query
+        results = [
+            telegram.InlineQueryResultArticle(
+                id=str(uuid.uuid4()),  # Generate unique ID
+                title="Current Free Game",
+                input_message_content=telegram.InputTextMessageContent(text),
+            )
+        ]
+        await update.inline_query.answer(results)
+
+    else:  # Handle regular command
+        await update.message.reply_text(text)
 
 async def subscribe(update, context):
     chat_id = update.effective_chat.id
@@ -311,6 +325,7 @@ def run_bot(application: Application):
 
 
     application.job_queue.run_once(lambda c: first_scrape_and_update(application), when=0)
+    application.add_handler(InlineQueryHandler(freegame))
 
     logger.info("Starting bot...")
     application.run_polling()
