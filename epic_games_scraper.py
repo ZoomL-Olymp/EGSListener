@@ -15,7 +15,7 @@ import sqlite3
 import asyncio
 import aioschedule
 import telegram
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue, InlineQueryHandler, ContextTypes
 from dateutil import parser
 import pytz
@@ -216,21 +216,32 @@ async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             free_until = datetime.fromisoformat(free_until_str)
             free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
             text = f"Current free game:\n{title}\nFree until: {free_until_formatted}"
+            description = f"Free until {free_until_formatted}" # Short description for inline results
+
 
         except ValueError:
             text = f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)"
+            description = "Invalid date format"
     else:
         text = "No free game information found."
+        description = "No free game available"
 
-    if update.inline_query:  # Handle inline query
+    if update.inline_query:
+        # Example keyboard with a URL button (optional)
+        keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Get the Game!", url="https://store.epicgames.com/en-US/")]]) # Example URL – replace with the actual game URL
+
         results = [
             telegram.InlineQueryResultArticle(
-                id=str(uuid.uuid4()),  # Generate unique ID
+                id=str(uuid.uuid4()),
                 title="Current Free Game",
-                input_message_content=telegram.InputTextMessageContent(text),
+                input_message_content=telegram.InputTextMessageContent(text, disable_web_page_preview=True),
+                description=description, # Added description
+                thumb_url="https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Epic_Games_logo.svg/2560px-Epic_Games_logo.svg.png",  # Example thumbnail URL - replace with actual game thumbnail if available
+                reply_markup=keyboard # Add the keyboard (optional)
+
             )
         ]
-        await update.inline_query.answer(results)
+        await update.inline_query.answer(results, cache_time=1) 
 
     else:  # Handle regular command
         await update.message.reply_text(text)
@@ -313,7 +324,6 @@ async def scheduler(application: Application):
 
 async def shutdown(application: Application):
     logger.info("Shutting down bot...")
-    await application.bot.send_message(chat_id=CHAT_ID, text="Shutting down")
     await application.stop()
     await application.shutdown()
 
