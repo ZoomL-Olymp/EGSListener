@@ -225,9 +225,12 @@ async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.inline_query:  # Handle inline query
         results = [
             telegram.InlineQueryResultArticle(
-                id=str(uuid.uuid4()),  # Generate unique ID
+                id=str(uuid.uuid4()),
                 title="Current Free Game",
-                input_message_content=telegram.InputTextMessageContent(text),
+                input_message_content=telegram.InputTextMessageContent(text, disable_web_page_preview=True),
+                description=description,
+                thumb_url="https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Epic_Games_logo.svg/2560px-Epic_Games_logo.svg.png",
+                reply_markup=keyboard
             )
         ]
         await update.inline_query.answer(results)
