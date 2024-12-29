@@ -213,7 +213,7 @@ async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     if update.inline_query:
         logger.info("Processing inline query...")
-        free_until, title = scrape_epic_games()
+        free_until, title = get_last_saved_game()
 
         if free_until and title:
             free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
@@ -229,7 +229,7 @@ async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         results = [
             telegram.InlineQueryResultArticle(
                 id=str(uuid.uuid4()),
-                title="Current Free Game",
+                title=title,
                 input_message_content=telegram.InputTextMessageContent(text, disable_web_page_preview=True),
                 description=description,
                 reply_markup=keyboard
