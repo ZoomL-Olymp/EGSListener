@@ -15,7 +15,7 @@ import sqlite3
 import asyncio
 import aioschedule
 import telegram
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue, InlineQueryHandler, ContextTypes
 from dateutil import parser
 import pytz
@@ -209,20 +209,23 @@ async def start(update, context):
     await update.message.reply_text("Welcome! Use /freegame to get the current free game.")
 
 async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    game_info = get_last_saved_game()
-    if game_info:
-        title, free_until_str = game_info
-        try:
-            free_until = datetime.fromisoformat(free_until_str)
+    logger.info("freegame function called")
+
+    if update.inline_query:
+        logger.info("Processing inline query...")
+        free_until, title = scrape_epic_games()
+
+        if free_until and title:
             free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
             text = f"Current free game:\n{title}\nFree until: {free_until_formatted}"
+            description = f"Free until {free_until_formatted}"
+        else:
+            text = "Could not retrieve free game information. Please try again later."
+            description = "Error retrieving game info"
+            logger.warning(f"Scraping failed in inline query.")  # Log the scraping failure
 
-        except ValueError:
-            text = f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)"
-    else:
-        text = "No free game information found."
+        keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Get the Game!", url="https://store.epicgames.com/en-US/")]])
 
-    if update.inline_query:  # Handle inline query
         results = [
             telegram.InlineQueryResultArticle(
                 id=str(uuid.uuid4()),
@@ -233,10 +236,38 @@ async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 reply_markup=keyboard
             )
         ]
-        await update.inline_query.answer(results)
 
-    else:  # Handle regular command
-        await update.message.reply_text(text)
+        try:
+            await update.inline_query.answer(results, cache_time=1)
+            logger.info("Inline query results sent.")
+        except Exception as e:
+            logger.error(f"Error sending inline query results: {e}")
+
+    elif update.message:  # Check for regular message/command
+        logger.info("Processing regular command/message...")
+        game_info = get_last_saved_game()
+        if game_info:
+            title, free_until_str = game_info
+
+            try:
+                free_until = datetime.fromisoformat(free_until_str)
+                free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
+                text = f"Current free game:\n{title}\nFree until: {free_until_formatted}"
+            except ValueError:
+                logger.error(f"Error parsing date: {free_until_str}")
+                text = f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)"
+        else:
+            logger.warning("No game info found in the database.")
+            text = "No free game information found."
+
+
+        try:
+            await update.message.reply_text(text)
+            logger.info("Message sent.")
+        except Exception as e:
+            logger.error(f"Error sending message: {e}")
+    else:
+        logger.warning(f"Unexpected update type: {update}")
 
 async def subscribe(update, context):
     chat_id = update.effective_chat.id
@@ -316,7 +347,6 @@ async def scheduler(application: Application):
 
 async def shutdown(application: Application):
     logger.info("Shutting down bot...")
-    await application.bot.send_message(chat_id=CHAT_ID, text="Shutting down")
     await application.stop()
     await application.shutdown()
 
@@ -329,6 +359,7 @@ def run_bot(application: Application):
 
 
     application.job_queue.run_once(lambda c: first_scrape_and_update(application), when=0)
+    application.add_handler(CommandHandler("freegame", freegame))
     application.add_handler(InlineQueryHandler(freegame))
 
     logger.info("Starting bot...")
