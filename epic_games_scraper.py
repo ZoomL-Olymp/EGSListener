@@ -244,6 +244,7 @@ async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
             )
         ]
+        logger.info("Inline query results created.")
 
         try:
             await update.inline_query.answer(results, cache_time=1)
