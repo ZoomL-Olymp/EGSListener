@@ -15,7 +15,8 @@ import sqlite3
 import asyncio
 import aioschedule
 import telegram
-from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue, InlineQueryHandler
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue, InlineQueryHandler, ContextTypes
 from dateutil import parser
 import pytz
 import uuid
@@ -207,7 +208,7 @@ def scrape_epic_games():
 async def start(update, context):
     await update.message.reply_text("Welcome! Use /freegame to get the current free game.")
 
-async def freegame(update: telegram.Update, context: telegram.ContextTypes.DEFAULT_TYPE) -> None:
+async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     game_info = get_last_saved_game()
     if game_info:
         title, free_until_str = game_info
