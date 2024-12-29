@@ -209,28 +209,21 @@ async def start(update, context):
     await update.message.reply_text("Welcome! Use /freegame to get the current free game.")
 
 async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    logger.info("freegame function called")  # Log entry at the start
-
-    game_info = get_last_saved_game()
-    if game_info:
-        title, free_until_str = game_info
-
-        try:
-            free_until = datetime.fromisoformat(free_until_str)
-            free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
-            text = f"Current free game:\n{title}\nFree until: {free_until_formatted}"
-            description = f"Free until {free_until_formatted}"
-        except ValueError:
-            logger.error(f"Error parsing date: {free_until_str}") # Log the error
-            text = f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)"
-            description = "Invalid date format"
-    else:
-        logger.warning("No game info found in the database.")
-        text = "No free game information found."
-        description = "No free game available"
+    logger.info("freegame function called")
 
     if update.inline_query:
         logger.info("Processing inline query...")
+        free_until, title = scrape_epic_games()
+
+        if free_until and title:
+            free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
+            text = f"Current free game:\n{title}\nFree until: {free_until_formatted}"
+            description = f"Free until {free_until_formatted}"
+        else:
+            text = "Could not retrieve free game information. Please try again later."
+            description = "Error retrieving game info"
+            logger.warning(f"Scraping failed in inline query.")  # Log the scraping failure
+
         keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Get the Game!", url="https://store.epicgames.com/en-US/")]])
 
         results = [
@@ -238,13 +231,12 @@ async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 id=str(uuid.uuid4()),
                 title="Current Free Game",
                 input_message_content=telegram.InputTextMessageContent(text, disable_web_page_preview=True),
-                description=description, # Added description
-                thumb_url="https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Epic_Games_logo.svg/2560px-Epic_Games_logo.svg.png",  # Example thumbnail URL - replace with actual game thumbnail if available
-                reply_markup=keyboard # Add the keyboard (optional)
+                description=description,
+                thumb_url="https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Epic_Games_logo.svg/2560px-Epic_Games_logo.svg.png",
+                reply_markup=keyboard
 
             )
         ]
-        logger.info("Inline query results created.")
 
         try:
             await update.inline_query.answer(results, cache_time=1)
@@ -252,17 +244,31 @@ async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         except Exception as e:
             logger.error(f"Error sending inline query results: {e}")
 
-
     elif update.message:  # Check for regular message/command
-        logger.info("Processing regular command/message...") # Log for regular command
+        logger.info("Processing regular command/message...")
+        game_info = get_last_saved_game()
+        if game_info:
+            title, free_until_str = game_info
+
+            try:
+                free_until = datetime.fromisoformat(free_until_str)
+                free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
+                text = f"Current free game:\n{title}\nFree until: {free_until_formatted}"
+            except ValueError:
+                logger.error(f"Error parsing date: {free_until_str}")
+                text = f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)"
+        else:
+            logger.warning("No game info found in the database.")
+            text = "No free game information found."
+
 
         try:
             await update.message.reply_text(text)
             logger.info("Message sent.")
         except Exception as e:
             logger.error(f"Error sending message: {e}")
-    else: # Neither inline query nor regular message
-      logger.warning(f"Unexpected update type: {update}")
+    else:
+        logger.warning(f"Unexpected update type: {update}")
 
 async def subscribe(update, context):
     chat_id = update.effective_chat.id
