@@ -440,7 +440,6 @@ async def scheduler(application: Application):
 
 async def shutdown(application: Application):
     logger.info("Shutting down bot...")
-    await application.bot.send_message(chat_id=CHAT_ID, text="Shutting down")
     await application.stop()
     await application.shutdown()
 
