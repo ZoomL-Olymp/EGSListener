@@ -445,44 +445,44 @@ async def scrape_and_update(application: Application):
 
 
 async def scheduler(application: Application):
-    logger.info("Scheduler started.")
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(1)
 
-
 async def shutdown(application: Application):
     logger.info("Shutting down bot...")
-    await application.bot.send_message(chat_id=CHAT_ID, text="Shutting down")
+    await application.bot.send_message(chat_id=CHAT_ID, text="Shutting down") # Using CHAT_ID
     await application.stop()
     await application.shutdown()
 
-
-def run_bot(application: Application):
+async def run_bot(application: Application): # Make run_bot async
     application.add_handler(CommandHandler("stop", lambda u,c: asyncio.create_task(shutdown(application))))
 
-    async def first_scrape_and_update(app): # Pass application to first_scrape_and_update
+    async def first_scrape_and_update(app):
         await scrape_and_update(app)
 
-
-    application.job_queue.run_once(lambda c: first_scrape_and_update(application), when=0)
+    asyncio.create_task(scheduler(application)) # Start scheduler as a separate task
+    application.job_queue.run_once(first_scrape_and_update, when=0) # Schedule initial scrape
 
     logger.info("Starting bot...")
-    application.run_polling()
-
+    await application.start() # Replace run_polling with start to avoid blocking
+    await application.updater.idle() # Keep the bot running
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     application = (ApplicationBuilder()
-               .token(BOT_TOKEN)
-               .post_init(create_database)
-               .job_queue(JobQueue())
-               .build())
+                   .token(BOT_TOKEN)
+                   .post_init(create_database)
+                   .job_queue(JobQueue())
+                   .build())
     application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("freegame", freegame))
     application.add_handler(CommandHandler("subscribe", subscribe))
     application.add_handler(CommandHandler("unsubscribe", unsubscribe))
 
-    run_bot(application)
+    try:
+        asyncio.run(run_bot(application)) # Use asyncio.run
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("Bot stopped.")
