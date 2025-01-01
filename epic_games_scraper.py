@@ -318,8 +318,7 @@ def scrape_epic_games():
 
 
 # --- Telegram Bot Functions ---
-async def start(update, context):
-    logging.info("Calling start function")
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [
             InlineKeyboardButton(text="Free Game", callback_data="/freegame"),
@@ -327,8 +326,38 @@ async def start(update, context):
             InlineKeyboardButton(text="Unsubscribe", callback_data="/unsubscribe"),
         ],
     ]
-    inline_markup = InlineKeyboardMarkup(keyboard, resize_keyboard=True)
-    await update.message.reply_text("Welcome to the Epic Games Store Free Game Bot:", reply_markup=reply_markup)
+    reply_markup = InlineKeyboardMarkup(keyboard)  # Fixed: reply_markup was not defined
+    await update.message.reply_text("Welcome!", reply_markup=reply_markup)
+
+
+
+async def freegame(update: Update, context: ContextTypes.DEFAULT_TYPE):  # Fixed: Signature
+    game_info = get_last_saved_game()
+    if game_info:
+        title, free_until_str = game_info
+        try:
+            free_until = datetime.fromisoformat(free_until_str)
+            free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
+            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_formatted}")
+
+        except ValueError:
+            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)")
+    else:
+        await update.message.reply_text("No game information found.")
+
+async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):  # Fixed: Signature
+    chat_id = update.effective_chat.id
+    if add_subscriber(chat_id):
+        await update.message.reply_text("Subscribed!")
+    else:
+        await update.message.reply_text("Subscription failed.")
+
+async def unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):  # Fixed: Signature
+    chat_id = update.effective_chat.id
+    if remove_subscriber(chat_id):
+        await update.message.reply_text("Unsubscribed!")
+    else:
+        await update.message.reply_text("Unsubscription failed.")
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.info(f"Button callback received: {update.callback_query.data}")
@@ -344,38 +373,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     elif query.data == "/unsubscribe":
         logger.info("Calling unsubscribe function")
         await unsubscribe(update.effective_message, context)
-
-async def freegame(message, context):
-    logger.info("Handling freegame request")
-    update = Update.de_json(message.to_dict(), bot) 
-    game_info = get_last_saved_game()
-    if game_info:
-        title, free_until_str = game_info
-        try:
-            free_until = datetime.fromisoformat(free_until_str)
-            free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
-            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_formatted}")
-
-        except ValueError:
-            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)")
-
-async def subscribe(message, context):
-    logger.info("Handling subscribe request")
-    update = Update.de_json(message.to_dict(), bot)
-    chat_id = update.effective_chat.id
-    if add_subscriber(chat_id):
-        await update.message.reply_text("You have been subscribed to free game notifications!")
-    else:
-        await update.message.reply_text("Failed to subscribe. Please try again later.")
-
-async def unsubscribe(message, context):
-    logger.info("Handling unsubscribe request")
-    update = Update.de_json(message.to_dict(), bot)
-    chat_id = update.effective_chat.id
-    if remove_subscriber(chat_id):
-        await update.message.reply_text("You have been unsubscribed from free game notifications.")
-    else:
-        await update.message.reply_text("Failed to unsubscribe. Please try again later.")
 
 async def send_notification(application: Application, title, free_until):
     subscribers = get_subscribers()
@@ -458,15 +455,14 @@ async def shutdown(application: Application):
 async def run_bot(application: Application):
     application.add_handler(CommandHandler("stop", lambda u,c: asyncio.create_task(shutdown(application))))
 
-    async def first_scrape_and_update(app):
-        await scrape_and_update(app)
+    asyncio.create_task(scheduler(application))  # Start scheduler in the background
+    application.job_queue.run_once(lambda c: scrape_and_update(application), when=0) # Initial scrape
 
-    asyncio.create_task(scheduler(application))
-    application.job_queue.run_once(first_scrape_and_update, when=0)
-
-    logger.info("Starting bot...")
     await application.initialize()
     await application.start()
+
+
+    logger.info("Bot running...") # Moved this here
     await application.idle()
 
 if __name__ == "__main__":
@@ -484,6 +480,6 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("unsubscribe", unsubscribe))
 
     try:
-        asyncio.run(run_bot(application)) # Use asyncio.run
+        asyncio.run(run_bot(application))
     except (KeyboardInterrupt, SystemExit):
         logger.info("Bot stopped.")
