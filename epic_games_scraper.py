@@ -467,7 +467,7 @@ async def run_bot(application: Application):
     logger.info("Starting bot...")
     await application.initialize()
     await application.start()
-    await application.updater.idle()
+    await application.idle()
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
