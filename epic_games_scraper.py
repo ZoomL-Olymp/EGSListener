@@ -13,7 +13,6 @@ from fake_useragent import UserAgent
 
 import sqlite3
 import asyncio
-import aioschedule
 import telegram
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue
@@ -392,51 +391,28 @@ async def scrape_and_update(application: Application):
     try:
         now = datetime.now(timezone.utc)
         free_until, title = scrape_epic_games()
+
         if free_until and title:
             last_game = get_last_saved_game()
             if not last_game or last_game[0] != title:
-              save_game_info(title, free_until.isoformat())
-              logger.info(f"New free game found and saved: {title}")
-              await send_notification(application, title, free_until)
+                save_game_info(title, free_until.isoformat())
+                logger.info(f"New free game found and saved: {title}")
+                await send_notification(application, title, free_until)
 
-              time_diff = free_until - now
+            # Schedule next scrape based on free_until or tomorrow at 10:00
+            when = free_until if free_until > now else (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+            application.job_queue.run_once(lambda c: scrape_and_update(application), when=when) # Reschedule
+            logger.info(f"Next scrape scheduled for: {when}")
 
-              if time_diff > timedelta(0):
-                  logger.info(f"Scheduling next scrape in {time_diff}")
-                  aioschedule.clear()  # Clear any existing schedules
-                  application.job_queue.run_once(lambda c: scrape_and_update(application), when=free_until)
-              else: # free_until is in the past
-                 tomorrow = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
-                 logger.info(f"Scheduling for tomorrow at 10:00")
-                 application.job_queue.run_once(lambda c: scrape_and_update(application), when=tomorrow)
-                 aioschedule.every().day.at("10:00").do(lambda: scrape_and_update(application)) # Fallback to daily schedule
-            else:
-                logger.info(f"Game hasn't changed")
-                time_diff = free_until - now
-                if time_diff > timedelta(0):
-                    logger.info(f"Scheduling next scrape in {time_diff}")
-                    aioschedule.clear()  # Clear any existing schedules
-                    application.job_queue.run_once(lambda c: scrape_and_update(application), when=free_until)
-                else:
-                    tomorrow = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
-                    logger.info(f"Scheduling for tomorrow at 10:00")
-                    application.job_queue.run_once(lambda c: scrape_and_update(application), when=tomorrow)
-                    aioschedule.every().day.at("10:00").do(lambda: scrape_and_update(application)) # Fallback to daily schedule
         else:
+            # Scraping failed, reschedule for tomorrow at 10:00
             tomorrow = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
-            logger.warning(f"Scraping failed, scheduling for tomorrow at 10:00")
-            application.job_queue.run_once(lambda c: scrape_and_update(application), when=tomorrow)
-            aioschedule.every().day.at("10:00").do(lambda: scrape_and_update(application)) # Fallback to daily schedule
+            application.job_queue.run_once(lambda c: scrape_and_update(application), when=tomorrow)  # Reschedule
+            logger.warning(f"Scraping failed, next scrape scheduled for: {tomorrow}")
+
+
     except Exception as e:
         logger.error(f"Error during scraping and update: {e}")
-
-
-async def scheduler(application: Application):
-    logger.info("Scheduler started.")
-    while True:
-        await aioschedule.run_pending()
-        await asyncio.sleep(1)
-
 
 async def shutdown(application: Application):
     logger.info("Shutting down bot...")
