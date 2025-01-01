@@ -43,11 +43,31 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
 if BOT_TOKEN is None:
     logger.error("BOT_TOKEN wasn't found!")
-    exit(1) # Прекращаем выполнение программы, если токен не найден
+    exit(1)
 DATABASE_FILE = "free_games.db"
 
 # --- Database Functions ---
 async def create_database(application: Application):
+    """
+    Creates/connects to a SQLite database to store scraped data and subscribers.
+
+    The database will be created if it doesn't exist, otherwise it will be connected to.
+
+    Two tables are created: "free_games" and "subscribers".
+
+    "free_games" table stores the scraped data with the following columns:
+
+        id INTEGER PRIMARY KEY AUTOINCREMENT
+        title TEXT
+        free_until TEXT
+
+    "subscribers" table stores the subscribers' chat IDs with the following columns:
+
+        chat_id INTEGER PRIMARY KEY
+
+    :param application: Telegram Application instance
+    :type application: Application
+    """
     logger.info("Creating/connecting to database...")
     try:
         conn = sqlite3.connect(DATABASE_FILE)
@@ -82,6 +102,20 @@ async def create_database(application: Application):
 
 
 def save_game_info(title, free_until):
+    """
+    Saves game information into the database.
+
+    This function inserts the title and free_until date of a game into
+    the free_games table in the database. It logs the process and 
+    handles exceptions if there are any errors during the database 
+    operation.
+
+    :param title: The title of the game.
+    :type title: str
+    :param free_until: The date until which the game is free.
+    :type free_until: str
+    """
+
     logger.info(f"Saving game info: {title} - {free_until}")
     try:
         conn = sqlite3.connect(DATABASE_FILE)
@@ -95,6 +129,20 @@ def save_game_info(title, free_until):
 
 
 def get_last_saved_game():
+    """
+    Retrieves the last saved game from the database.
+
+    This function connects to the SQLite database and fetches the most
+    recent entry from the "free_games" table, ordered by the primary key
+    in descending order. It returns a tuple containing the title and
+    free_until date of the last saved game. If an error occurs during
+    the database operation, it logs the error and returns None.
+
+    :return: Tuple containing the title and free_until date of the last 
+             saved game, or None if an error occurs.
+    :rtype: tuple or None
+    """
+
     logger.info("Retrieving last saved game...")
     try:
         conn = sqlite3.connect(DATABASE_FILE)
@@ -109,6 +157,20 @@ def get_last_saved_game():
         return None
     
 def add_subscriber(chat_id):
+    """
+    Adds a chat_id to the subscribers table in the database.
+
+    This function takes a chat_id as an argument and adds it to the
+    subscribers table in the database. If the chat_id is already in
+    the table, it does nothing. If an error occurs during the database
+    operation, it logs the error and returns False.
+
+    :param chat_id: The chat_id to be added to the subscribers table.
+    :type chat_id: int
+    :return: True if the chat_id was successfully added, False if an
+             error occurred.
+    :rtype: bool
+    """
     logger.info(f"Adding subscriber: {chat_id}")
     try:
         conn = sqlite3.connect(DATABASE_FILE)
@@ -123,6 +185,21 @@ def add_subscriber(chat_id):
         return False
 
 def remove_subscriber(chat_id):
+    """
+    Removes a chat_id from the subscribers table in the database.
+
+    This function takes a chat_id as an argument and removes it from
+    the subscribers table in the database. If the chat_id is not found,
+    it does nothing. If an error occurs during the database operation,
+    it logs the error and returns False.
+
+    :param chat_id: The chat_id to be removed from the subscribers table.
+    :type chat_id: int
+    :return: True if the chat_id was successfully removed, False if an
+             error occurred.
+    :rtype: bool
+    """
+
     logger.info(f"Removing subscriber: {chat_id}")
     try:
         conn = sqlite3.connect(DATABASE_FILE)
@@ -137,6 +214,18 @@ def remove_subscriber(chat_id):
         return False
 
 def get_subscribers():
+    """
+    Retrieves a list of chat_ids from the subscribers table in the database.
+
+    This function connects to the SQLite database and fetches all the
+    chat_ids from the "subscribers" table. It returns a list of integers
+    representing the chat_ids of the subscribers. If an error occurs during
+    the database operation, it logs the error and returns an empty list.
+
+    :return: List of integers representing the chat_ids of the subscribers, or
+             an empty list if an error occurs.
+    :rtype: list
+    """
     logger.info("Retrieving subscribers...")
     try:
         conn = sqlite3.connect(DATABASE_FILE)
@@ -152,6 +241,22 @@ def get_subscribers():
 
 # --- Scraping Function ---
 def scrape_epic_games():
+    """
+    Scrapes the Epic Games Store for the current free game details.
+
+    This function initiates a headless Chrome browser session and navigates 
+    to the Epic Games Store. It retrieves the title and the "free until" 
+    date of the currently featured free game. The function uses a random 
+    user agent to mimic a real browser session. Any exceptions during the 
+    scraping process are logged, and the function returns None, None in 
+    such cases.
+
+    Returns:
+        tuple: A tuple containing the free game's title and the "free until" 
+               date as a datetime object. Returns (None, None) if an error 
+               occurs.
+    """
+
     start_time = time.time()
     logger.info("Starting scraping process...")
 
@@ -246,6 +351,18 @@ async def send_notification(application: Application, title, free_until):
               logger.error(f"Failed to send message to {chat_id}: {e}")
 
 async def scrape_and_update(application: Application):
+    """
+    Scrapes the Epic Games Store for the current free game details and updates the database,
+    notifies subscribers if a new game is found, and schedules the next scrape based on the
+    "free until" date of the game. If the "free until" date is in the past, it schedules the next
+    scrape for 10:00 the next day.
+
+    Args:
+        application (Application): The Telegram Application instance.
+
+    Returns:
+        None
+    """
     logger.info("Starting scheduled scrape and update...")
     try:
         now = datetime.now(timezone.utc)
