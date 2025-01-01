@@ -319,6 +319,7 @@ def scrape_epic_games():
 
 # --- Telegram Bot Functions ---
 async def start(update, context):
+    logging.info("Calling start function")
     keyboard = [
         [
             InlineKeyboardButton(text="Free Game", callback_data="/freegame"),
