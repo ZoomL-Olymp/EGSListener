@@ -434,13 +434,22 @@ def run_bot(application: Application):
 
     async def first_scrape_and_update(app): # Pass application to first_scrape_and_update
         await scrape_and_update(app)
-
-
+        await set_bot_commands(app)
+    
     application.job_queue.run_once(lambda c: first_scrape_and_update(application), when=0)
 
     logger.info("Starting bot...")
     application.run_polling()
 
+async def set_bot_commands(application: Application):
+    """Sets the bot commands."""
+    commands = [
+        telegram.BotCommand("start", "Start the bot"),
+        telegram.BotCommand("freegame", "Get the current free game"),
+        telegram.BotCommand("subscribe", "Subscribe to notifications"),
+        telegram.BotCommand("unsubscribe", "Unsubscribe from notifications"),
+    ]
+    await application.bot.set_my_commands(commands)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -450,15 +459,6 @@ if __name__ == "__main__":
                .post_init(create_database)
                .job_queue(JobQueue())
                .build())
-    
-    commands = [
-        telegram.BotCommand("start", "Start the bot"),
-        telegram.BotCommand("freegame", "Get the current free game"),
-        telegram.BotCommand("subscribe", "Subscribe to notifications"),
-        telegram.BotCommand("unsubscribe", "Unsubscribe from notifications"),
-
-    ]
-    await application.bot.set_my_commands(commands) # Setting bot commands
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("freegame", freegame))
