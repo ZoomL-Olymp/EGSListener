@@ -16,7 +16,14 @@ import asyncio
 import aioschedule
 import telegram
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue, ContextTypes
+from telegram.ext import (
+    ApplicationBuilder, 
+    CommandHandler, 
+    Application, 
+    JobQueue,
+    ContextTypes,
+    CallbackQueryHandler,
+)    
 from dateutil import parser
 import pytz
 
