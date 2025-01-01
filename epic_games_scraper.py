@@ -314,14 +314,24 @@ def scrape_epic_games():
 async def start(update, context):
     keyboard = [
         [
-            InlineKeyboardButton(text="Free Game", callback_data="freegame"),
-            InlineKeyboardButton(text="Subscribe", callback_data="subscribe"),
-            InlineKeyboardButton(text="Unsubscribe", callback_data="unsubscribe"),
+            InlineKeyboardButton(text="Free Game", callback_data="/freegame"),
+            InlineKeyboardButton(text="Subscribe", callback_data="/subscribe"),
+            InlineKeyboardButton(text="Unsubscribe", callback_data="/unsubscribe"),
         ],
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     await update.message.reply_text("Welcome to the Epic Games Store Free Game Bot:", reply_markup=reply_markup)
 
+async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "/getfreegame":
+        await freegame(update.effective_message, context)
+    elif query.data == "/subscribe":
+        await subscribe(update, context)
+    elif query.data == "/unsubscribe":
+        await unsubscribe(update, context)
 
 async def freegame(update, context):
     game_info = get_last_saved_game()
