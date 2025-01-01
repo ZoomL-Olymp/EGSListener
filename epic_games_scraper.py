@@ -15,6 +15,7 @@ import sqlite3
 import asyncio
 import aioschedule
 import telegram
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue
 from dateutil import parser
 import pytz
@@ -311,7 +312,12 @@ def scrape_epic_games():
 
 # --- Telegram Bot Functions ---
 async def start(update, context):
-    await update.message.reply_text("Welcome! Use /freegame to get the current free game.")
+    keyboard = [
+        ["/freegame", "/subscribe", "/unsubscribe"],
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    await update.message.reply_text("Welcome to the Epic Games Store Free Game Bot:", reply_markup=reply_markup)
+
 
 async def freegame(update, context):
     game_info = get_last_saved_game()
@@ -441,7 +447,9 @@ if __name__ == "__main__":
                .post_init(create_database)
                .job_queue(JobQueue())
                .build())
+    commands = [
 
+    ]
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("freegame", freegame))
     application.add_handler(CommandHandler("subscribe", subscribe))
