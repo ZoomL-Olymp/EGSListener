@@ -444,10 +444,10 @@ def run_bot(application: Application):
 async def set_bot_commands(application: Application):
     """Sets the bot commands."""
     commands = [
-        telegram.BotCommand("start", "Start the bot"),
-        telegram.BotCommand("freegame", "Get the current free game"),
-        telegram.BotCommand("subscribe", "Subscribe to notifications"),
-        telegram.BotCommand("unsubscribe", "Unsubscribe from notifications"),
+        telegram.BotCommand("start", "Start"),
+        telegram.BotCommand("freegame", "Get Free Game"),
+        telegram.BotCommand("subscribe", "Subscribe"),
+        telegram.BotCommand("unsubscribe", "Unsubscribe"),
     ]
     await application.bot.set_my_commands(commands)
 
