@@ -313,14 +313,25 @@ def scrape_epic_games():
 # --- Telegram Bot Functions ---
 async def start(update, context):
     keyboard = [
-        [telegram.KeyboardButton(text="Current Free Game")],  # Text for /freegame
+        [telegram.InlineKeyboardButton("Current Free Game", callback_data="freegame")],
         [
-            telegram.KeyboardButton(text="Subscribe"),  # Text for /subscribe
-            telegram.KeyboardButton(text="Unsubscribe")  # Text for /unsubscribe
+            telegram.InlineKeyboardButton("Subscribe", callback_data="subscribe"),
+            telegram.InlineKeyboardButton("Unsubscribe", callback_data="unsubscribe"),
         ],
     ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    reply_markup = telegram.InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Welcome to the Epic Games Store Free Game Bot:", reply_markup=reply_markup)
+
+async def button_handler(update: Update, context: telegram.ext.CallbackContext):
+    query = update.callback_query
+    await query.answer()  # Acknowledge button press
+
+    if query.data == "freegame":
+        await freegame(update, context)
+    elif query.data == "subscribe":
+        await subscribe(update, context)
+    elif query.data == "unsubscribe":
+        await unsubscribe(update, context)
 
 async def freegame(update, context):
     game_info = get_last_saved_game()
@@ -437,6 +448,7 @@ def run_bot(application: Application):
         await set_bot_commands(app)
     
     application.job_queue.run_once(lambda c: first_scrape_and_update(application), when=0)
+    application.add_handler(telegram.ext.CallbackQueryHandler(button_handler))
 
     logger.info("Starting bot...")
     application.run_polling()
@@ -464,5 +476,6 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("freegame", freegame))
     application.add_handler(CommandHandler("subscribe", subscribe))
     application.add_handler(CommandHandler("unsubscribe", unsubscribe))
+    application.add_handler(telegram.ext.CallbackQueryHandler(button_handler))
 
     run_bot(application)
