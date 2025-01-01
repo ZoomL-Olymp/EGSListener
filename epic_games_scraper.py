@@ -313,8 +313,11 @@ def scrape_epic_games():
 # --- Telegram Bot Functions ---
 async def start(update, context):
     keyboard = [
-        ["/freegame"],  # Remove /subscribe and /unsubscribe from main menu
-        ["/subscribe", "/unsubscribe"], # Put them on a separate row
+        [telegram.KeyboardButton(text="Current Free Game")],  # Text for /freegame
+        [
+            telegram.KeyboardButton(text="Subscribe"),  # Text for /subscribe
+            telegram.KeyboardButton(text="Unsubscribe")  # Text for /unsubscribe
+        ],
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     await update.message.reply_text("Welcome to the Epic Games Store Free Game Bot:", reply_markup=reply_markup)
@@ -447,9 +450,16 @@ if __name__ == "__main__":
                .post_init(create_database)
                .job_queue(JobQueue())
                .build())
+    
     commands = [
+        telegram.BotCommand("start", "Start the bot"),
+        telegram.BotCommand("freegame", "Get the current free game"),
+        telegram.BotCommand("subscribe", "Subscribe to notifications"),
+        telegram.BotCommand("unsubscribe", "Unsubscribe from notifications"),
 
     ]
+    await application.bot.set_my_commands(commands) # Setting bot commands
+
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("freegame", freegame))
     application.add_handler(CommandHandler("subscribe", subscribe))
