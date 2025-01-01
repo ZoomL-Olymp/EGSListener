@@ -15,7 +15,7 @@ import sqlite3
 import asyncio
 import aioschedule
 import telegram
-from telegram import Update, ReplyKeyboardMarkup, inlineKeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue
 from dateutil import parser
 import pytz
