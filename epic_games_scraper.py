@@ -330,17 +330,22 @@ async def start(update, context):
     await update.message.reply_text("Welcome to the Epic Games Store Free Game Bot:", reply_markup=reply_markup)
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.info(f"Button callback received: {update.callback_query.data}")
     query = update.callback_query
     await query.answer()
 
     if query.data == "/freegame":
+        logger.info("Calling freegame function")
         await freegame(update.effective_message, context)
     elif query.data == "/subscribe":
+        logger.info("Calling subscribe function")
         await subscribe(update.effective_message, context)
     elif query.data == "/unsubscribe":
+        logger.info("Calling unsubscribe function")
         await unsubscribe(update.effective_message, context)
 
 async def freegame(message, context):
+    logger.info("Handling freegame request")
     update = Update.de_json(message.to_dict(), bot) 
     game_info = get_last_saved_game()
     if game_info:
@@ -354,6 +359,7 @@ async def freegame(message, context):
             await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)")
 
 async def subscribe(message, context):
+    logger.info("Handling subscribe request")
     update = Update.de_json(message.to_dict(), bot)
     chat_id = update.effective_chat.id
     if add_subscriber(chat_id):
@@ -362,6 +368,7 @@ async def subscribe(message, context):
         await update.message.reply_text("Failed to subscribe. Please try again later.")
 
 async def unsubscribe(message, context):
+    logger.info("Handling unsubscribe request")
     update = Update.de_json(message.to_dict(), bot)
     chat_id = update.effective_chat.id
     if remove_subscriber(chat_id):
