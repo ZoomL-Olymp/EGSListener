@@ -314,9 +314,9 @@ def scrape_epic_games():
 async def start(update, context):
     keyboard = [
         [
-            inlineKeyboardButton(text="Free Game", callback_data="freegame"),
-            inlineKeyboardButton(text="Subscribe", callback_data="subscribe"),
-            inlineKeyboardButton(text="Unsubscribe", callback_data="unsubscribe"),
+            InlineKeyboardButton(text="Free Game", callback_data="freegame"),
+            InlineKeyboardButton(text="Subscribe", callback_data="subscribe"),
+            InlineKeyboardButton(text="Unsubscribe", callback_data="unsubscribe"),
         ],
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
