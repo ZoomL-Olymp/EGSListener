@@ -334,30 +334,35 @@ async def button_handler(update: Update, context: telegram.ext.CallbackContext):
         await unsubscribe(update, context)
 
 async def freegame(update, context):
+    query = update.callback_query # Get the query object
+    chat_id = query.message.chat_id # Extract chat_id from query
     game_info = get_last_saved_game()
     if game_info:
         title, free_until_str = game_info
         try:
             free_until = datetime.fromisoformat(free_until_str)
             free_until_formatted = free_until.strftime("%Y-%m-%d %H:%M %Z")
-            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_formatted}")
+            await context.bot.send_message(chat_id=chat_id, text=f"Current free game:\n{title}\nFree until: {free_until_formatted}") # Send message
 
         except ValueError:
-            await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)")
+            await context.bot.send_message(chat_id=chat_id, text=f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)") # Send message
+
 
 async def subscribe(update, context):
-    chat_id = update.effective_chat.id
+    query = update.callback_query # Get the query object
+    chat_id = query.message.chat_id # Extract chat_id from query
     if add_subscriber(chat_id):
-        await update.message.reply_text("You have been subscribed to free game notifications!")
+        await context.bot.send_message(chat_id=chat_id, text="You have been subscribed to free game notifications!") # Send message
     else:
-        await update.message.reply_text("Failed to subscribe. Please try again later.")
+        await context.bot.send_message(chat_id=chat_id, text="Failed to subscribe. Please try again later.") # Send message
 
 async def unsubscribe(update, context):
-    chat_id = update.effective_chat.id
+    query = update.callback_query # Get the query object
+    chat_id = query.message.chat_id # Extract chat_id from query
     if remove_subscriber(chat_id):
-        await update.message.reply_text("You have been unsubscribed from free game notifications.")
+        await context.bot.send_message(chat_id=chat_id, text="You have been unsubscribed from free game notifications.") # Send message
     else:
-        await update.message.reply_text("Failed to unsubscribe. Please try again later.")
+        await context.bot.send_message(chat_id=chat_id, text="Failed to unsubscribe. Please try again later.") # Send message
 
 async def send_notification(application: Application, title, free_until):
     subscribers = get_subscribers()
