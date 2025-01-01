@@ -455,18 +455,19 @@ async def shutdown(application: Application):
     await application.stop()
     await application.shutdown()
 
-async def run_bot(application: Application): # Make run_bot async
+async def run_bot(application: Application):
     application.add_handler(CommandHandler("stop", lambda u,c: asyncio.create_task(shutdown(application))))
 
     async def first_scrape_and_update(app):
         await scrape_and_update(app)
 
-    asyncio.create_task(scheduler(application)) # Start scheduler as a separate task
-    application.job_queue.run_once(first_scrape_and_update, when=0) # Schedule initial scrape
+    asyncio.create_task(scheduler(application))
+    application.job_queue.run_once(first_scrape_and_update, when=0)
 
     logger.info("Starting bot...")
-    await application.start() # Replace run_polling with start to avoid blocking
-    await application.updater.idle() # Keep the bot running
+    await application.initialize()
+    await application.start()
+    await application.updater.idle()
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
