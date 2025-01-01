@@ -15,8 +15,8 @@ import sqlite3
 import asyncio
 import aioschedule
 import telegram
-from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue, ContextTypes
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import ApplicationBuilder, CommandHandler, Application, JobQueue, ContextTypes, bot
 from dateutil import parser
 import pytz
 
@@ -319,21 +319,22 @@ async def start(update, context):
             InlineKeyboardButton(text="Unsubscribe", callback_data="/unsubscribe"),
         ],
     ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    inline_markup = InlineKeyboardMarkup(keyboard, resize_keyboard=True)
     await update.message.reply_text("Welcome to the Epic Games Store Free Game Bot:", reply_markup=reply_markup)
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
 
-    if query.data == "/getfreegame":
+    if query.data == "/freegame":
         await freegame(update.effective_message, context)
     elif query.data == "/subscribe":
-        await subscribe(update, context)
+        await subscribe(update.effective_message, context)
     elif query.data == "/unsubscribe":
-        await unsubscribe(update, context)
+        await unsubscribe(update.effective_message, context)
 
-async def freegame(update, context):
+async def freegame(message, context):
+    update = Update.de_json(message.to_dict(), bot) 
     game_info = get_last_saved_game()
     if game_info:
         title, free_until_str = game_info
@@ -345,14 +346,16 @@ async def freegame(update, context):
         except ValueError:
             await update.message.reply_text(f"Current free game:\n{title}\nFree until: {free_until_str} (Invalid date format)")
 
-async def subscribe(update, context):
+async def subscribe(message, context):
+    update = Update.de_json(message.to_dict(), bot)
     chat_id = update.effective_chat.id
     if add_subscriber(chat_id):
         await update.message.reply_text("You have been subscribed to free game notifications!")
     else:
         await update.message.reply_text("Failed to subscribe. Please try again later.")
 
-async def unsubscribe(update, context):
+async def unsubscribe(message, context):
+    update = Update.de_json(message.to_dict(), bot)
     chat_id = update.effective_chat.id
     if remove_subscriber(chat_id):
         await update.message.reply_text("You have been unsubscribed from free game notifications.")
@@ -461,9 +464,7 @@ if __name__ == "__main__":
                .post_init(create_database)
                .job_queue(JobQueue())
                .build())
-    commands = [
-
-    ]
+    application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("freegame", freegame))
     application.add_handler(CommandHandler("subscribe", subscribe))
